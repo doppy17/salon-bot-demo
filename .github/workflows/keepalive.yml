@@ -1,0 +1,27 @@
+name: keepalive
+
+# Render на бесплатном тарифе гасит сервис через 15 минут без HTTP-трафика.
+# Вместе с процессом умирает и long polling — бот перестаёт отвечать клиентам.
+# Пинг каждые 10 минут держит контейнер живым.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping health endpoint
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 \
+              https://salon-bot-demo-cly0.onrender.com/healthz || true)
+            echo "attempt $i -> $code"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 20
+          done
+          echo "healthz не ответил 200, контейнер не поднялся"
+          exit 1
