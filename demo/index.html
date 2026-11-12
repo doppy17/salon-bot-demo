@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Демо: бот записи для салона</title>
+<style>
+  :root{
+    --tg-bg:#0e1621; --tg-chat:#17212b; --tg-in:#182533; --tg-out:#2b5278;
+    --tg-text:#e9edf1; --tg-dim:#9dafbf; --tg-accent:#63a0dd; --tg-btn:#22303d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% 0%,#1c2b3a,#070b10 70%);
+       font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--tg-text);
+       display:flex;align-items:center;justify-content:center;gap:52px;padding:32px;flex-wrap:wrap}
+  .phone{width:352px;height:700px;border-radius:44px;background:#000;padding:10px;
+         box-shadow:0 40px 90px rgba(0,0,0,.65),0 0 0 2px #232f3b inset}
+  .screen{width:100%;height:100%;border-radius:36px;overflow:hidden;background:var(--tg-chat);
+          display:flex;flex-direction:column;position:relative}
+  .bar{background:#17212b;padding:12px 14px;display:flex;align-items:center;gap:10px;
+       border-bottom:1px solid #0e1621;flex:none}
+  .ava{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#5288c1,#7b5ea7);
+       display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
+  .who{font-size:14px;font-weight:600;line-height:1.2}
+  .status{font-size:11.5px;color:var(--tg-accent)}
+  .chat{flex:1;overflow-y:auto;padding:16px 12px 26px;scroll-padding-top:12px;display:flex;flex-direction:column;gap:8px;
+        background:linear-gradient(180deg,#0f1a24,#17212b)}
+  .chat::-webkit-scrollbar{width:0}
+  .msg{max-width:84%;padding:8px 12px;border-radius:14px;font-size:13.5px;line-height:1.45;
+       background:var(--tg-in);border-bottom-left-radius:4px;animation:in .22s ease both;
+       white-space:pre-line}
+  .msg.me{align-self:flex-end;background:var(--tg-out);border-radius:14px;border-bottom-right-radius:4px}
+  .msg b{color:#fff}
+  .msg .t{display:block;font-size:10px;color:#a8bccd;text-align:right;margin-top:3px}
+  @keyframes in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .kbd{align-self:stretch;display:flex;flex-direction:column;gap:6px;animation:in .22s ease both}
+  .kb{background:var(--tg-btn);border:1px solid #2a3947;border-radius:10px;padding:9px 12px;
+      font-size:13px;color:#cfe0ef;cursor:pointer;transition:.15s;text-align:center}
+  .kb:hover{background:#2a3947;border-color:var(--tg-accent);color:#fff}
+  .kb:active{transform:scale(.985)}
+  .kb.done{opacity:.45;pointer-events:none;border-color:#2a3947}
+  .typing{align-self:flex-start;background:var(--tg-in);padding:10px 14px;border-radius:14px;
+          border-bottom-left-radius:4px;display:none}
+  .typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:#7d8e9e;margin:0 2px;
+               animation:blink 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+  @keyframes blink{0%,60%,100%{opacity:.25}30%{opacity:1}}
+  .side{max-width:330px}
+  .side h1{font-size:22px;margin:0 0 6px;letter-spacing:-.3px}
+  .side p{color:#9db0c2;font-size:14px;line-height:1.6;margin:0 0 18px}
+  .side ul{padding-left:18px;color:#c4d3e0;font-size:13.5px;line-height:1.9;margin:0 0 22px}
+  .badge{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+         color:#8fb6dd;border:1px solid #2f4a63;border-radius:999px;padding:4px 10px;margin-bottom:14px}
+  .reset{background:transparent;border:1px solid #2f4a63;color:#9db0c2;border-radius:9px;
+         padding:9px 16px;font-size:13px;cursor:pointer}
+  .reset:hover{border-color:var(--tg-accent);color:#fff}
+  @media(max-width:820px){body{gap:26px}.side{order:-1;text-align:center}.side ul{text-align:left;display:inline-block}}
+</style>
+</head>
+<body>
+<div class="side">
+  <div class="badge">демо · без установки</div>
+  <h1>Бот записи для салона</h1>
+  <p>Так клиент записывается за 6 нажатий в любое время суток. Администратор получает уведомление и видит расписание дня одной командой.</p>
+  <ul>
+    <li>Выбор услуги, мастера, дня и времени</li>
+    <li>Свободные слоты считаются сами</li>
+    <li>Напоминание за 2 часа до визита</li>
+    <li>Отмена в один тап</li>
+    <li>«Сегодня» — расписание и выручка дня</li>
+  </ul>
+  <button class="reset" onclick="boot()">↻ Пройти заново</button>
+</div>
+
+<div class="phone"><div class="screen">
+  <div class="bar">
+    <div class="ava">Л</div>
+    <div>
+      <div class="who">Салон «Лотос»</div>
+      <div class="status">бот · онлайн 24/7</div>
+    </div>
+  </div>
+  <div class="chat" id="chat"><div class="typing" id="typing"><span></span><span></span><span></span></div></div>
+</div></div>
+
+<script>
+const chat = document.getElementById('chat');
+const typing = document.getElementById('typing');
+const now = () => new Date().toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+
+const services = [
+  ['Стрижка женская · 2 500 ₽ · 60 мин','Стрижка женская','2 500 ₽','60 мин'],
+  ['Окрашивание · 5 500 ₽ · 120 мин','Окрашивание','5 500 ₽','120 мин'],
+  ['Маникюр · 2 000 ₽ · 60 мин','Маникюр','2 000 ₽','60 мин'],
+];
+const masters = ['Анна','Марина','Ирина'];
+
+function bot(text){
+  typing.style.display='block';
+  chat.appendChild(typing);
+  chat.scrollTop = chat.scrollHeight;
+  return new Promise(res=>{
+    setTimeout(()=>{
+      typing.style.display='none';
+      const d=document.createElement('div');
+      d.className='msg'; d.innerHTML=text+'<span class="t">'+now()+'</span>';
+      chat.appendChild(d); chat.scrollTop=chat.scrollHeight; res();
+    }, 420);
+  });
+}
+function me(text){
+  const d=document.createElement('div');
+  d.className='msg me'; d.innerHTML=text+'<span class="t">'+now()+' ✓✓</span>';
+  chat.appendChild(d); chat.scrollTop=chat.scrollHeight;
+}
+function buttons(items){
+  return new Promise(res=>{
+    const box=document.createElement('div'); box.className='kbd';
+    items.forEach(([label,cb])=>{
+      const b=document.createElement('div'); b.className='kb'; b.textContent=label;
+      b.onclick=()=>{ box.querySelectorAll('.kb').forEach(x=>x.classList.add('done')); cb(); res(); };
+      box.appendChild(b);
+    });
+    chat.appendChild(box); chat.scrollTop=chat.scrollHeight;
+  });
+}
+
+async function boot(){
+  chat.innerHTML=''; chat.appendChild(typing);
+  await new Promise(r=>setTimeout(r,250));
+  await bot('Здравствуйте! Это <b>Салон «Лотос»</b>.\nЗапишу вас за минуту — выберите услугу 👇\n\n📍 ул. Ленина, 15\n☎️ +7 999 000-00-00');
+
+  let chosen;
+  await buttons(services.map(s=>[s[0], async ()=>{ chosen=s; me(s[0].split(' · ')[0]); }]));
+  await new Promise(r=>setTimeout(r,300));
+  await bot('Выбрали: <b>'+chosen[1]+'</b> — '+chosen[2]+', '+chosen[3]+'.\n\nК какому мастеру?');
+
+  let master;
+  await buttons([...masters.map(m=>['💇 '+m, ()=>{ master=m; me(m); }]), ['Любой свободный', ()=>{ master='Анна'; me('Любой свободный'); }]]);
+  await new Promise(r=>setTimeout(r,300));
+  await bot('Мастер: <b>'+master+'</b>.\nВыберите день:');
+
+  await buttons([['пн, 10 ноя',null],['вт, 11 ноя',null],['ср, 12 ноя',null],['чт, 13 ноя',null]].map(([d])=>[d,()=>me(d)]));
+  await new Promise(r=>setTimeout(r,300));
+  await bot('<b>вт, 11 ноя</b> — свободное время:');
+
+  let time;
+  await buttons([['10:00',null],['11:30',null],['12:00',null],['14:30',null],['16:00',null],['18:30',null]].map(([t])=>[t,()=>{ time=t; me(t); }]));
+  await new Promise(r=>setTimeout(r,300));
+  await bot('Записываю на <b>вт, 11 ноя в '+time+'</b>.\n\nКак вас зовут?');
+
+  await new Promise(r=>setTimeout(r,700));
+  me('Иван');
+  await new Promise(r=>setTimeout(r,300));
+  await bot('Остался номер телефона — нажмите кнопку ниже или введите вручную:');
+  await new Promise(r=>setTimeout(r,300));
+  await buttons([['📱 Отправить мой номер', ()=>me('+7 999 123-45-67')]]);
+  await new Promise(r=>setTimeout(r,300));
+  await bot('Проверьте запись:\n\nУслуга: <b>'+chosen[1]+'</b>\nКогда: <b>вт, 11 ноя в '+time+'</b>\nИмя: Иван\nТелефон: +7 999 123-45-67');
+  await new Promise(r=>setTimeout(r,200));
+  await bot('Всё верно?');
+  await buttons([['✅ Подтвердить',()=>me('Подтвердить')],['✖️ Начать заново',()=>me('Начать заново')]]);
+  await new Promise(r=>setTimeout(r,300));
+  await bot('✅ <b>Готово, вы записаны!</b>\n\n<b>'+chosen[1]+'</b>\nвт, 11 ноя в '+time+'\nМастер: '+master+' · '+chosen[3]+' · '+chosen[2]+'\n\n📍 ул. Ленина, 15\nНапомню за 2 часа до визита. Отменить или посмотреть — /my');
+}
+boot();
+</script>
+</body>
+</html>
